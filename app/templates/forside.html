@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block innhold %}
+<section class="helt">
+  <div class="inn">
+    <div class="overline">Reklamasjon og tegnetime</div>
+    <h1 style="margin-top:14px">Hver reklamasjon blir en <em>sak</em>.<br>Hver forespørsel blir et <em>lead</em>.</h1>
+    <p class="ingress">I dag sendes begge skjemaene på strai.no som e-post til butikken. Her leser AI meldingen, sorterer den og legger den rett inn i Odoo med saksnummer, ansvarlig og frist, så fabrikken også får statistikken.</p>
+  </div>
+  <ol class="flyt inn inn-2" aria-label="Flyten">
+    <li class="for"><b>E-post til butikkens innboks</b><span>Slik skjemaene sendes i dag</span></li>
+    <li><b>1. Kunden sender skjemaet</b><span>Samme felt som i dag, bilder inkludert</span></li>
+    <li><b>2. AI vurderer</b><span>Feiltype, skap, alvorlighet, reservedel og svarutkast</span></li>
+    <li><b>3. Sak eller lead i Odoo</b><span><code>helpdesk.ticket</code> eller <code>crm.lead</code> via API</span></li>
+    <li><b>4. Kunden får saksnummer</b><span>Butikk, fabrikk eller montør får saken rett</span></li>
+  </ol>
+</section>
+
+<div class="tall-rad inn inn-3">
+  <div><strong>4 000+</strong><span>kjøkken i året</span></div>
+  <div><strong>14 + 23</strong><span>egne butikker og forhandlere</span></div>
+  <div><strong>87 %</strong><span>av fabrikksalget går via egne butikker</span></div>
+  <div><strong>1 837</strong><span>elementer i elementoversikten</span></div>
+</div>
+
+<section class="skjemaer">
+  <form class="kort skjema inn inn-3" method="post" action="/reklamasjon" enctype="multipart/form-data" data-ai-skjema>
+    <div class="skjema-hode"><h2>Reklamasjon</h2><span class="skjema-nr">skjema 01</span></div>
+    <p class="skjema-forklaring">Speiler feltene i reklamasjonsskjemaet på strai.no. Ordrenummeret slås opp i Odoo for å finne kjøkkenmodell.</p>
+    <div class="to-kol">
+      <label class="felt"><span>Navn</span><input name="kundenavn" required autocomplete="name"></label>
+      <label class="felt"><span>E-post</span><input name="epost" type="email" required autocomplete="email"></label>
+    </div>
+    <div class="to-kol">
+      <label class="felt"><span>Ordrenummer <small>f.eks. SO-24830</small></span><input name="ordrenummer" placeholder="SO-"></label>
+      <label class="felt"><span>Butikk eller forhandler</span>
+        <select name="butikk" required>
+          <option value="">Velg</option>
+          {% for b in butikker %}<option value="{{ b.navn }}">{{ b.navn }}{% if b.type == 'forhandler' %} (forhandler){% endif %}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <label class="felt"><span>Hva gjelder reklamasjonen?</span><textarea name="fritekst" required placeholder="Beskriv hva som er feil, og hvilket skap det gjelder."></textarea></label>
+    <label class="opplasting"><input type="file" name="bilder" accept="image/*" multiple data-filer><b>Legg ved bilder</b><span data-filtekst>Opptil 10 bilder</span></label>
+    <div class="skjema-fot">
+      <button type="button" class="knapp knapp-lenke" data-eksempel="reklamasjon">Fyll inn eksempel</button>
+      <button class="knapp knapp-hoved" type="submit">Send reklamasjon</button>
+    </div>
+    <div class="jobber" aria-live="polite">
+      <div class="spinner"></div>
+      <p>Saken behandles</p>
+      <ol><li class="aktiv">Slår opp ordren i Odoo</li><li>AI vurderer feilen</li><li>Oppretter sak i Helpdesk</li></ol>
+    </div>
+  </form>
+
+  <form class="kort skjema inn inn-4" method="post" action="/tegnetime" data-ai-skjema>
+    <div class="skjema-hode"><h2>Bestill tegnetime</h2><span class="skjema-nr">skjema 02</span></div>
+    <p class="skjema-forklaring">Speiler tegnetime-skjemaet. AI kvalifiserer forespørselen og foreslår nærmeste butikk ut fra postnummer.</p>
+    <div class="to-kol">
+      <label class="felt"><span>Navn</span><input name="navn" required autocomplete="name"></label>
+      <label class="felt"><span>Postnummer</span><input name="postnummer" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required></label>
+    </div>
+    <div class="to-kol">
+      <label class="felt"><span>E-post</span><input name="epost" type="email" autocomplete="email"></label>
+      <label class="felt"><span>Telefon</span><input name="telefon" type="tel" autocomplete="tel"></label>
+    </div>
+    <label class="felt"><span>Ønsket butikk <small>valgfritt</small></span>
+      <select name="onsket_butikk">
+        <option value="">Nærmeste butikk</option>
+        {% for b in butikker %}<option value="{{ b.navn }}">{{ b.navn }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="felt"><span>Fortell litt om prosjektet</span><textarea name="beskrivelse" required placeholder="Rom, nybygg eller oppussing, når dere ønsker det ferdig."></textarea></label>
+    <div class="skjema-fot">
+      <button type="button" class="knapp knapp-lenke" data-eksempel="tegnetime">Fyll inn eksempel</button>
+      <button class="knapp knapp-hoved" type="submit">Bestill tegnetime</button>
+    </div>
+    <div class="jobber" aria-live="polite">
+      <div class="spinner"></div>
+      <p>Forespørselen kvalifiseres</p>
+      <ol><li class="aktiv">AI leser beskrivelsen</li><li>Velger butikk og prioritet</li><li>Oppretter lead i CRM</li></ol>
+    </div>
+  </form>
+</section>
+{% endblock %}

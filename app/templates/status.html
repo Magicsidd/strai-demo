@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block tittel %}Sak {{ post.x_saksnummer }}{% endblock %}
+{% block innhold %}
+<div class="kort kvittering inn">
+  <div class="overline">Din sak hos {{ post.x_butikk or 'Strai Kjøkken' }}</div>
+  <div class="stempel">{{ post.x_saksnummer }}</div>
+  <h1>Vi etterleverer det som mangler.</h1>
+  <p style="color:var(--blekk-2);margin:10px 0 0">Siden oppdateres fra Odoo. Du trenger ikke sende e-post for å få status.</p>
+  <ol class="statussteg">
+    {% for tekst, ferdig in steg %}<li class="{{ 'ferdig' if ferdig }}"><span></span>{{ tekst }}</li>{% endfor %}
+  </ol>
+  <dl>
+    {% for l in d.linjer %}<dt>{{ l.antall }} stk</dt><dd>{{ beskriv(l.kode) }} <span class="hint">({{ l.problem }})</span></dd>{% endfor %}
+  </dl>
+  <p class="hint">Demo: dette er siden kunden får lenke til i svaret, så status alltid er tilgjengelig.</p>
+</div>
+{% endblock %}

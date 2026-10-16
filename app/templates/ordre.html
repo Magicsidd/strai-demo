@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block tittel %}{{ post.name }}: ordresjekk{% endblock %}
+{% block innhold %}
+{% set statusnavn = {'klar': 'Klar for produksjon', 'avklar': 'Må avklares', 'stopp': 'Stopp', 'overstyrt': 'Overstyrt av selger'} %}
+{% set statusklasse = {'klar': 'lav', 'avklar': 'middels', 'stopp': 'høy', 'overstyrt': 'manuell'} %}
+{% set alvorklasse = {'stopp': 'høy', 'avklar': 'middels', 'info': 'lav'} %}
+<div class="brodsmule"><a href="/ordre">Ordre</a> / {{ post.name }}</div>
+<div class="sak-hode inn">
+  <div>
+    <h1>{{ ordre.kunde }}</h1>
+    <div class="sak-meta">
+      <span class="saksnr">{{ post.name }}</span>
+      <span class="tagg tagg-gran">{{ ordre.modell }}</span>
+      <span class="tagg">{{ ordre.butikk }}</span>
+      {% if ordre.onsket_levering %}<span class="tagg">Ønsket levering {{ ordre.onsket_levering.isoformat()|dato }}</span>{% endif %}
+      {% if modell and modell.leveringstid_uker %}<span class="tagg">Leveringstid {{ modell.leveringstid_uker }} uker</span>{% endif %}
+      {% if post.x_ordresjekk_status %}<span class="merkelapp alv-{{ statusklasse[post.x_ordresjekk_status] }}">{{ statusnavn[post.x_ordresjekk_status] }}</span>{% endif %}
+    </div>
+  </div>
+  {% if odoo_lenke %}<a class="knapp knapp-rolig" href="{{ odoo_lenke }}" target="_blank">Åpne i Odoo</a>{% endif %}
+</div>
+
+{% if melding == 'godkjent' %}<div class="melding melding-ok">Ordren er bekreftet i Odoo og sendt til produksjon. Leveransen er opprettet.</div>{% endif %}
+{% if melding == 'utdatert' %}<div class="melding melding-varsel">Ordren er endret i Odoo etter siste sjekk. Kjør ordresjekken på nytt før den sendes til produksjon.</div>{% endif %}
+{% if melding == 'begrunnelse' %}<div class="melding melding-varsel">Ordren har funn. Skriv en begrunnelse på minst 10 tegn for å overstyre, den lagres i Odoo.</div>{% endif %}
+
+<div class="ordre-grid">
+  <section class="kort inn inn-2" style="overflow:hidden">
+    <div class="panel-hode" style="padding:20px 22px 0"><div><h2>Ordrelinjer</h2><p>Hentet fra <code>sale.order.line</code>. Kodene er Strai sine elementkoder.</p></div></div>
+    <table class="liste linjer">
+      <thead><tr><th>Kode</th><th>Element</th><th>Antall</th><th></th></tr></thead>
+      <tbody>
+      {% for l in linjer %}
+        <tr class="{{ 'har-funn alvor-' ~ l.funn[0].alvor if l.funn }}">
+          <td><span class="mono">{{ l.kode }}</span></td>
+          <td>{{ l.beskrivelse }}<span class="under">{% if l.handelsvare %}Handelsvare{% elif l.side %}Elementoversikten s. {{ l.side }}{% endif %}</span></td>
+          <td class="tall">{{ l.antall|int }}</td>
+          <td>{% for f in l.funn %}<span class="prikk alv-{{ alvorklasse[f.alvor] }}" title="{{ f.regel }}: {{ f.tittel }}"></span>{% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="onsker">
+      <div class="overline">Kundens ønsker, fra tegnetimen</div>
+      <p>«{{ ordre.kundens_onsker or 'Ingen ønsker registrert.' }}»</p>
+    </div>
+  </section>
+
+  <section class="kort vurdering inn inn-3">
+    <div class="vurdering-hode">
+      <h2>Ordresjekk</h2>
+      {% if sjekk %}<span class="hint">Kjørt {{ post.x_ordresjekk_tid|dato(true) }} · AI: {{ sjekk.ai_backend }}</span>{% endif %}
+    </div>
+    {% if not sjekk %}
+      <p style="color:var(--blekk-2);margin-top:0">Ordren er ikke sjekket. Sjekken kjører 12 faste regler fra elementoversikten, og sammenligner kundens ønsker med ordren ved hjelp av AI.</p>
+      {% if post.state in ('draft', 'sent') %}
+      <form method="post" action="/ordre/{{ post.id }}/sjekk" data-ai-skjema style="position:relative">
+        <button class="knapp knapp-hoved" type="submit">Kjør ordresjekk</button>
+        <div class="jobber" aria-live="polite"><div class="spinner"></div><p>Sjekker ordren</p><ol><li class="aktiv">Faste regler</li><li>AI leser kundens ønsker</li><li>Lagrer i Odoo</li></ol></div>
+      </form>
+      {% endif %}
+    {% else %}
+      <p class="oppsummering status-{{ sjekk.status }}">{{ sjekk.oppsummering }}</p>
+      {% for f in sjekk.funn %}
+      <article class="funn alvor-{{ f.alvor }}">
+        <header>
+          <span class="merkelapp alv-{{ alvorklasse[f.alvor] }}">{{ {'stopp': 'Stopp', 'avklar': 'Avklar', 'info': 'Info'}[f.alvor] }}</span>
+          <span class="regel mono">{{ f.regel }}</span>
+          <b>{{ f.tittel }}</b>
+        </header>
+        <p>{{ f.beskrivelse }}</p>
+        {% if f.sitat %}<blockquote>«{{ f.sitat }}»</blockquote>{% endif %}
+        {% if f.forslag %}<p class="forslag">Forslag: {% for k in f.forslag %}<span class="mono">{{ k }}</span> {% endfor %}</p>{% endif %}
+        <footer>{{ f.kilde }}</footer>
+      </article>
+      {% else %}
+      <div class="melding melding-ok">Ingen funn. Alle 12 regler er bestått{{ ', og ordren stemmer med kundens ønsker' if ordre.kundens_onsker }}.</div>
+      {% endfor %}
+      {% if sjekk.forkastet %}
+      <details class="forkastet">
+        <summary>{{ sjekk.forkastet|length }} AI-forslag ble stoppet av kontrollene</summary>
+        <ul>{% for t in sjekk.forkastet %}<li>{{ t }}</li>{% endfor %}</ul>
+      </details>
+      {% endif %}
+      {% if sjekk.ai_feil %}<div class="melding melding-varsel">AI svarte ikke ({{ sjekk.ai_feil[:120] }}). De faste reglene er kjørt.</div>{% endif %}
+
+      {% if post.state in ('draft', 'sent') %}
+      <form method="post" action="/ordre/{{ post.id }}/godkjenn" class="godkjenn" data-en-gang>
+        {% if sjekk.status != 'klar' %}
+        <label class="felt"><span>Begrunnelse for å sende likevel <small>lagres i Odoo</small></span>
+          <input name="begrunnelse" placeholder="F.eks. bekreftet med kunden på telefon"></label>
+        {% endif %}
+        <div class="handlinger">
+          <button class="knapp {{ 'knapp-hoved' if sjekk.status == 'klar' else 'knapp-rolig' }}" type="submit">{{ 'Send til produksjon' if sjekk.status == 'klar' else 'Overstyr og send til produksjon' }}</button>
+        </div>
+      </form>
+      <form method="post" action="/ordre/{{ post.id }}/sjekk" style="margin-top:10px"><button class="knapp knapp-lenke" type="submit">Kjør sjekken på nytt</button></form>
+      {% endif %}
+    {% endif %}
+
+    {% if post.state == 'sale' %}
+    <div class="levering">
+      <div class="overline">Levering</div>
+      {% for l in leveranser %}<p><span class="mono">{{ l.name }}</span> · {{ {'assigned': 'Klar til utkjøring', 'done': 'Levert', 'confirmed': 'Venter', 'waiting': 'Venter'}.get(l.state, l.state) }}</p>{% endfor %}
+      {% for a in avvik %}<p><a href="/avvik/{{ a.id }}" class="saksnr">{{ a.x_saksnummer }}</a> avvik, årsak {{ a.x_avvik_arsak }}</p>{% endfor %}
+      <form method="post" action="/ordre/{{ post.id }}/avvik" data-ai-skjema style="position:relative;margin-top:14px">
+        <label class="felt"><span>Meld avvik ved levering</span>
+          <textarea name="melding" required placeholder="F.eks. Kolli 3 manglet, vi har fått 7 håndtak. En front har bulk."></textarea></label>
+        <div class="handlinger">
+          <select name="avsender" aria-label="Avsender"><option>montør</option><option>kunde</option></select>
+          <button class="knapp knapp-hoved" type="submit">Registrer avvik</button>
+        </div>
+        <div class="jobber" aria-live="polite"><div class="spinner"></div><p>Kobler avviket til ordren</p><ol><li class="aktiv">AI leser meldingen</li><li>Kontrollerer mot ordrelinjene</li><li>Oppretter etterlevering i Odoo</li></ol></div>
+      </form>
+    </div>
+    {% endif %}
+    <div class="odoo-ref">
+      <span><code>sale.order</code> #{{ post.id }}</span>
+      <span>Hvert funn har regel og kilde. Resultatet lagres på ordren og i chatteren.</span>
+    </div>
+  </section>
+</div>
+{% endblock %}

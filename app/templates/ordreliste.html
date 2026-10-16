@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block tittel %}Ordre{% endblock %}
+{% block innhold %}
+{% set statusnavn = {'klar': 'Klar', 'avklar': 'Må avklares', 'stopp': 'Stopp', 'overstyrt': 'Overstyrt'} %}
+{% set statusklasse = {'klar': 'lav', 'avklar': 'middels', 'stopp': 'høy', 'overstyrt': 'manuell'} %}
+<div class="side-hode inn">
+  <div>
+    <div class="overline">Riktig levert første gang</div>
+    <h1 style="margin-top:8px">Ordre fra butikk til fabrikk</h1>
+    <p>Hver ordre sjekkes mot Strai sin elementoversikt og mot kundens ønsker før den går i produksjon. Feil som stoppes her, blir aldri en etterlevering.</p>
+  </div>
+  <div class="kilde-boks">
+    <div class="overline">Odoo</div>
+    <b>{{ 'Mock' if miljo.ordre_er_mock else 'Odoo 18 Community' }}</b>
+    <span class="mono">{{ miljo.ordre_url }}</span>
+  </div>
+</div>
+
+<div class="kort inn inn-2" style="overflow:hidden">
+  <table class="liste">
+    <thead><tr><th>Ordre</th><th>Kunde</th><th>Modell</th><th>Butikk</th><th>Ønsket levering</th><th>Ordresjekk</th><th class="skjul-smal">Odoo-status</th></tr></thead>
+    <tbody>
+    {% for o in ordrer %}
+      <tr data-href="/ordre/{{ o.id }}">
+        <td><span class="saksnr">{{ o.name }}</span></td>
+        <td><a class="tittel" href="/ordre/{{ o.id }}">{{ o.partner_id[1] if o.partner_id }}</a></td>
+        <td>{{ o.x_kjokkenmodell }}</td>
+        <td>{{ o.x_butikk|kort }}</td>
+        <td class="tall">{{ o.commitment_date|dato }}</td>
+        <td>{% if o.x_ordresjekk_status %}<span class="merkelapp alv-{{ statusklasse[o.x_ordresjekk_status] }}">{{ statusnavn[o.x_ordresjekk_status] }}</span>{% else %}<span class="tagg">Ikke sjekket</span>{% endif %}</td>
+        <td class="skjul-smal">{{ {'draft': 'Tilbud', 'sent': 'Tilbud sendt', 'sale': 'I produksjon', 'cancel': 'Kansellert'}.get(o.state, o.state) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="tom">Ingen ordrer. Kjør <code>python -m demo.ordre_seed</code>.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if etterleveringer %}
+<h2 class="seksjon-tittel inn inn-3">Etterleveringer etter avvik</h2>
+<div class="kort inn inn-3" style="overflow:hidden">
+  <table class="liste">
+    <thead><tr><th>Sak</th><th>Gjelder ordre</th><th>Kunde</th><th>Årsak</th><th>Odoo-ordre</th><th>Registrert</th></tr></thead>
+    <tbody>
+    {% for a in etterleveringer %}
+      <tr data-href="/avvik/{{ a.id }}">
+        <td><span class="saksnr">{{ a.x_saksnummer }}</span></td>
+        <td><a class="tittel" href="/avvik/{{ a.id }}">{{ a.origin }}</a></td>
+        <td>{{ a.partner_id[1] if a.partner_id }}</td>
+        <td><span class="tagg">{{ (a.x_avvik_arsak or 'ukjent')|capitalize }}</span></td>
+        <td class="tall">{{ a.name }}</td>
+        <td class="tall">{{ a.create_date|dato }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

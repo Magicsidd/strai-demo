@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block tittel %}Saker{% endblock %}
+{% block innhold %}
+<div class="side-hode inn">
+  <div>
+    <div class="overline">Slik ser en ansatt det</div>
+    <h1 style="margin-top:8px">Saker og leads</h1>
+    <p>Alt som før lå spredt i 37 innbokser, samlet på ett sted. Hentet direkte fra Odoo.</p>
+  </div>
+</div>
+
+<nav class="faner inn inn-2">
+  <a href="/saker?fane=reklamasjoner{{ '&butikk=' ~ butikk if butikk }}" class="{{ 'aktiv' if fane != 'leads' }}">Reklamasjoner<small>{{ reklamasjoner|length }}</small></a>
+  <a href="/saker?fane=leads{{ '&butikk=' ~ butikk if butikk }}" class="{{ 'aktiv' if fane == 'leads' }}">Tegnetime-leads<small>{{ leads|length }}</small></a>
+</nav>
+<div class="filter inn inn-2">
+  <a href="/saker?fane={{ fane }}" class="{{ 'aktiv' if not butikk }}">Alle butikker</a>
+  {% for b in butikker %}<a href="/saker?fane={{ fane }}&butikk={{ b|urlencode }}" class="{{ 'aktiv' if butikk == b }}">{{ b|kort }}</a>{% endfor %}
+</div>
+
+<div class="kort inn inn-3" style="overflow:hidden">
+{% if fane != 'leads' %}
+  <table class="liste">
+    <thead><tr><th>Sak</th><th>Kunde og melding</th><th class="skjul-smal">Modell</th><th>Feiltype</th><th>Alvorlighet</th><th class="skjul-smal">Sendes til</th><th class="skjul-smal">Status</th><th class="skjul-smal">Mottatt</th></tr></thead>
+    <tbody>
+    {% for s in reklamasjoner %}
+      <tr data-href="/saker/{{ s.id }}">
+        <td><span class="saksnr">{{ s.x_saksnummer }}</span></td>
+        <td><a class="tittel" href="/saker/{{ s.id }}">{{ s.name }}</a><span class="under">{{ s.partner_name }} · {{ s.x_butikk|kort }}</span></td>
+        <td class="skjul-smal">{{ s.x_kjokkenmodell }}</td>
+        <td>{% if s.x_manuell %}<span class="merkelapp alv-manuell">Manuell</span>{% else %}<span class="tagg">{{ s.x_feiltype|capitalize }}</span>{% endif %}</td>
+        <td>{% if s.x_alvorlighet %}<span class="merkelapp alv-{{ s.x_alvorlighet }}">{{ s.x_alvorlighet|capitalize }}</span>{% endif %}</td>
+        <td class="skjul-smal">{% if s.x_ruting %}<span class="ruting">{{ s.x_ruting|capitalize }}</span>{% endif %}</td>
+        <td class="skjul-smal">{{ s.stage_id[1] if s.stage_id }}</td>
+        <td class="tall skjul-smal">{{ s.create_date|dato }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="tom">Ingen reklamasjoner ennå. Send en fra skjemaet eller kjør <code>python -m demo.seed</code>.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <table class="liste">
+    <thead><tr><th>Lead</th><th>Kunde og prosjekt</th><th>Butikk</th><th class="skjul-smal">Prosjekt</th><th>Prioritet</th><th>Følg opp innen</th><th class="skjul-smal">Status</th><th class="skjul-smal">Mottatt</th></tr></thead>
+    <tbody>
+    {% for l in leads %}
+      {% set fs = frist_status(l.x_oppfolging_frist) %}
+      <tr data-href="/leads/{{ l.id }}">
+        <td><span class="saksnr">{{ l.x_saksnummer }}</span></td>
+        <td><a class="tittel" href="/leads/{{ l.id }}">{{ l.name }}</a><span class="under">{{ l.contact_name }} · {{ l.zip }}</span></td>
+        <td>{{ l.x_butikk|kort }}</td>
+        <td class="skjul-smal"><span class="tagg">{{ l.x_romtype|capitalize }}</span> <span class="under">{{ l.x_prosjekttype }}</span></td>
+        <td>{% if l.x_manuell %}<span class="merkelapp alv-manuell">Manuell</span>{% else %}<span class="merkelapp alv-{{ l.x_prioritet }}">{{ l.x_prioritet|capitalize }}</span>{% endif %}</td>
+        <td class="tall {{ 'frist-forfalt' if fs == 'forfalt' and l.stage_id and l.stage_id[1] in ('Ny', 'Kvalifisert') }} {{ 'frist-i' if fs == 'i dag' }}">{{ l.x_oppfolging_frist|dato }}{% if fs == 'forfalt' and l.stage_id and l.stage_id[1] in ('Ny', 'Kvalifisert') %} · forfalt{% endif %}</td>
+        <td class="skjul-smal">{{ l.stage_id[1] if l.stage_id }}</td>
+        <td class="tall skjul-smal">{{ l.create_date|dato }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="tom">Ingen leads ennå.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+</div>
+{% endblock %}

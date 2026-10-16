@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block tittel %}{{ post.x_saksnummer }}: {{ post.name }}{% endblock %}
+{% block innhold %}
+{% set fs = frist_status(post.x_oppfolging_frist) %}
+<div class="brodsmule"><a href="/saker?fane=leads">Leads</a> / {{ post.x_saksnummer }}</div>
+<div class="sak-hode inn">
+  <div>
+    <h1>{{ post.name }}</h1>
+    <div class="sak-meta">
+      <span class="saksnr">{{ post.x_saksnummer }}</span>
+      {% if post.x_manuell %}<span class="merkelapp alv-manuell">Trenger manuell vurdering</span>{% else %}
+      <span class="merkelapp alv-{{ post.x_prioritet }}">{{ post.x_prioritet|capitalize }} prioritet</span>{% endif %}
+      <span class="tagg tagg-gran">{{ post.x_butikk }}</span>
+      <span class="tagg">{{ post.stage_id[1] if post.stage_id }}</span>
+    </div>
+  </div>
+</div>
+
+{% if lagret %}<div class="melding melding-ok">Lagret i Odoo.</div>{% endif %}
+
+<div class="sak-grid">
+  <section class="kort innkommet inn inn-2">
+    <dl class="epost-hode">
+      <dt>Fra</dt><dd>{{ post.contact_name }}{% if post.email_from %} &lt;{{ post.email_from }}&gt;{% endif %}</dd>
+      <dt>Telefon</dt><dd>{{ post.phone or 'ikke oppgitt' }}</dd>
+      <dt>Postnr.</dt><dd>{{ post.zip }} · nærmeste butikk {{ post.x_naermeste_butikk|kort }}</dd>
+      <dt>Ønsket</dt><dd>{{ post.x_onsket_butikk or 'ingen butikk valgt' }}</dd>
+      <dt>Mottatt</dt><dd>{{ post.create_date|dato(true) }}</dd>
+    </dl>
+    <div class="epost-kropp">{{ post.description }}</div>
+  </section>
+
+  <section class="kort vurdering inn inn-3">
+    <div class="vurdering-hode">
+      <h2>AI-kvalifisering</h2>
+      {% if v.sikkerhet is defined %}<div class="sikkerhet">Sikkerhet <span class="bar"><i style="width:{{ (v.sikkerhet * 100)|round|int }}%"></i></span></div>{% endif %}
+    </div>
+    {% if post.x_manuell %}
+      <div class="melding melding-varsel">AI-en ga ikke et gyldig svar. Leadet er opprettet og må kvalifiseres manuelt.<br><small>{{ post.x_ai_feil }}</small></div>
+    {% else %}
+    <dl class="fakta">
+      <div><dt>Rom</dt><dd>{{ v.romtype|capitalize }}</dd></div>
+      <div><dt>Prosjekt</dt><dd>{{ v.prosjekttype|capitalize }}</dd></div>
+      <div><dt>Antatt budsjett</dt><dd>{{ v.budsjettklasse|capitalize }}</dd></div>
+      <div><dt>Tidsramme</dt><dd>{{ v.tidsramme|capitalize }}</dd></div>
+      <div class="bred"><dt>Hvorfor denne prioriteten</dt><dd>{{ v.begrunnelse }}</dd></div>
+      <div class="bred"><dt>Forslag til første samtale</dt><dd>{{ v.forslag_forste_kontakt }}</dd></div>
+      <div class="bred"><dt>Følg opp innen</dt><dd class="{{ 'frist-forfalt' if fs == 'forfalt' }}">{{ post.x_oppfolging_frist|dato }}{% if fs == 'forfalt' and post.stage_id and post.stage_id[1] in ('Ny', 'Kvalifisert') %}, fristen er passert{% endif %}</dd></div>
+    </dl>
+    {% endif %}
+    <form method="post" action="/leads/{{ post.id }}" class="handlinger" style="margin-top:20px">
+      <select name="x_butikk" aria-label="Butikk">{% for b in butikker %}<option {{ 'selected' if b == post.x_butikk }}>{{ b }}</option>{% endfor %}</select>
+      <select name="stage_id" aria-label="Status">{% for st in stadier %}<option value="{{ st.id }}" {{ 'selected' if post.stage_id and post.stage_id[0] == st.id }}>{{ st.name }}</option>{% endfor %}</select>
+      <button class="knapp knapp-hoved" type="submit">Lagre i Odoo</button>
+    </form>
+    <div class="odoo-ref">
+      <span><code>crm.lead</code> #{{ post.id }}</span>
+      <span>Vurdert av: {{ {'anthropic': 'Claude via API', 'claude_cli': 'Claude via Claude Code', 'regelbasert': 'regelbasert reserve', 'fast': 'testsvar'}.get(post.x_ai_backend, post.x_ai_backend) }}</span>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block tittel %}AI-logg{% endblock %}
+{% block innhold %}
+<div class="side-hode inn">
+  <div>
+    <div class="overline">Sporbarhet</div>
+    <h1 style="margin-top:8px">AI-logg og regler</h1>
+    <p>Hvert AI-kall logges med modell, promptversjon og en hash av input, men ikke kundens tekst. Promptversjonen er en hash av promptfila, så en endring i prompten synes her.</p>
+  </div>
+</div>
+
+<div class="nokkeltall">
+  <div class="kort"><div class="overline">AI-kall i loggen</div><strong>{{ poster|length }}</strong><span>siste 80</span></div>
+  <div class="kort"><div class="overline">Gyldige svar</div><strong>{{ gyldige }}</strong><span>validert mot Pydantic-skjema</span></div>
+  <div class="kort"><div class="overline">Promptversjoner</div><strong style="font-size:20px;margin-top:14px">{% for o, v in versjoner.items() %}<span class="mono" style="display:block;font-size:13px">{{ o }} {{ v }}</span>{% endfor %}</strong></div>
+  <div class="kort"><div class="overline">Faste regler</div><strong>12</strong><span>kjører uten AI, alltid</span></div>
+</div>
+
+<div class="panel-grid" style="grid-template-columns: 1.6fr 1fr">
+  <section class="kort" style="overflow-x:auto">
+    <table class="liste">
+      <thead><tr><th>Tid</th><th>Oppgave</th><th>Backend</th><th>Prompt</th><th class="skjul-smal">Input</th><th>Tid brukt</th><th>Gyldig</th></tr></thead>
+      <tbody>
+      {% for p in poster %}
+        <tr><td class="tall">{{ p.lokal_tid }}</td><td>{{ p.oppgave }}</td><td>{{ p.backend }}</td>
+            <td class="tall">{{ p.promptversjon }}</td><td class="tall skjul-smal">{{ p.input }}</td>
+            <td class="tall">{{ (p.varighet_ms / 1000)|round(1) }} s</td>
+            <td>{% if p.gyldig %}<span class="merkelapp alv-lav">Ja</span>{% else %}<span class="merkelapp alv-høy" title="{{ p.feil }}">Nei</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="7" class="tom">Ingen AI-kall ennå.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="kort panel">
+    <div class="panel-hode"><div><h2>Reglene</h2><p>Kjøres før AI. Kilden er Strai sin elementoversikt fra juni 2026.</p></div></div>
+    <ul class="regelliste">{% for rid, tittel, _ in regler %}<li><span class="mono">{{ rid }}</span>{{ tittel }}</li>{% endfor %}</ul>
+  </section>
+</div>
+{% endblock %}

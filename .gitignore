@@ -1,0 +1,12 @@
+.venv/
+.env
+*.db
+*.db-journal
+data/
+node_modules/
+__pycache__/
+.pytest_cache/
+.DS_Store
+
+# Strai sin elementoversikt bygges lokalt fra den offentlige PDF-en (python -m katalog.bygg)
+katalog/elementer.json

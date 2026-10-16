@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block tittel %}Dashbord{% endblock %}
+{% macro varmekart(data, radtittel) %}
+<table class="varme">
+  <thead><tr><th class="radnavn">{{ radtittel }}</th>{% for f in feiltyper %}<th>{{ f }}</th>{% endfor %}<th></th></tr></thead>
+  <tbody>
+  {% for r in data.rader %}
+    <tr>
+      <td class="radnavn">{{ r.navn|kort }}</td>
+      {% for n in r.celler %}
+        {% set trinn = 0 if n == 0 else ((n / data.maks) * 4)|round(0, 'ceil')|int + 1 %}
+        {% set trinn = 5 if trinn > 5 else trinn %}
+        {% if n %}<td class="celle" style="background:var(--s{{ trinn }});color:{{ '#fff' if trinn >= 4 else 'var(--blekk)' }}"
+            data-tips="{{ r.navn|kort }} · {{ feiltyper[loop.index0] }}: {{ n }} {{ 'sak' if n == 1 else 'saker' }}">{{ n }}</td>
+        {% else %}<td class="celle null" data-tips="{{ r.navn|kort }} · {{ feiltyper[loop.index0] }}: ingen saker"></td>{% endif %}
+      {% endfor %}
+      <td class="sum">{{ r.sum }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+{% block innhold %}
+<div class="side-hode inn">
+  <div>
+    <div class="overline">Tilbake til fabrikk og lean</div>
+    <h1 style="margin-top:8px">Dashbord</h1>
+    <p>Når reklamasjonene er data og ikke e-post, kan fabrikken se mønstre per modell og butikk. Tallene leses fra Odoo hver gang siden lastes.</p>
+  </div>
+</div>
+
+{% if innboks_feil %}<div class="melding melding-varsel">Innboks-delen er ikke tilgjengelig i denne Odoo-en ({{ innboks_feil[:100] }}). Helpdesk krever Odoo Enterprise.</div>{% endif %}
+<div class="nokkeltall">
+  <div class="kort inn"><div class="overline">Reklamasjoner</div><strong>{{ nokkeltall.saker }}</strong><span>{{ nokkeltall.saker_30 }} siste 30 dager</span></div>
+  <div class="kort inn inn-2"><div class="overline">Høy alvorlighet</div><strong>{{ nokkeltall.hoy }}</strong><span>{{ ((nokkeltall.hoy / nokkeltall.saker * 100) if nokkeltall.saker else 0)|round|int }} % av sakene</span></div>
+  <div class="kort inn inn-3"><div class="overline">Tegnetime-leads</div><strong>{{ nokkeltall.leads }}</strong><span>{{ nokkeltall.leads_hoy }} med høy prioritet</span></div>
+  <div class="kort inn inn-4"><div class="overline">Oppfølging forfalt</div><strong style="{{ 'color:var(--hoy)' if nokkeltall.leads_forfalt }}">{{ nokkeltall.leads_forfalt }}</strong><span>åpne leads over frist</span></div>
+</div>
+
+<section class="kort panel inn inn-2">
+  <div class="panel-hode">
+    <div><h2>Feiltyper per kjøkkenmodell</h2><p>Modellen hentes fra ordren i Odoo, ikke fra kunden. Mørkere felt betyr flere saker.</p></div>
+    <div class="skala" aria-hidden="true">Færre <i style="background:var(--s1)"></i><i style="background:var(--s2)"></i><i style="background:var(--s3)"></i><i style="background:var(--s4)"></i><i style="background:var(--s5)"></i> Flere</div>
+  </div>
+  {{ varmekart(per_modell, 'Modell') }}
+  {% if innsikt %}<p class="innsikt">{{ innsikt|safe }}</p>{% endif %}
+</section>
+
+<section class="kort panel inn inn-3">
+  <div class="panel-hode"><div><h2>Feiltyper per butikk</h2><p>Mange monteringsfeil i én butikk peker på montør, ikke fabrikk. Skrog og front i alle butikker peker på produksjon.</p></div></div>
+  {{ varmekart(per_butikk, 'Butikk') }}
+</section>
+
+<div class="panel-grid">
+  <section class="kort panel inn inn-4">
+    <div class="panel-hode">
+      <div><h2>Leads per butikk</h2><p>Fordelt på prioritet satt av AI.</p></div>
+      <div class="forklaring"><span><i style="background:var(--s5)"></i>Høy</span><span><i style="background:var(--s3)"></i>Middels</span><span><i style="background:var(--s1);border:1px solid var(--s2)"></i>Lav</span></div>
+    </div>
+    <div class="stolper">
+      {% for r in leads %}
+      <div class="stolpe-rad">
+        <span class="navn">{{ r.navn|kort }}</span>
+        <div class="stolpe" style="width:{{ (r.sum / leads_maks * 100) if r.sum else 0 }}%">
+          {% for nivaa, farge in [('høy', 's5'), ('middels', 's3'), ('lav', 's1')] %}{% if r[nivaa] %}<i style="flex:{{ r[nivaa] }};background:var(--{{ farge }}){{ ';box-shadow:inset 0 0 0 1px var(--s2)' if farge == 's1' }}" data-tips="{{ r.navn|kort }} · {{ nivaa }}: {{ r[nivaa] }}"></i>{% endif %}{% endfor %}
+        </div>
+        <span class="sum">{{ r.sum }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="kort panel inn inn-4">
+    <div class="panel-hode"><div><h2>Hvem får saken</h2><p>AI-en ruter hver reklamasjon. I dag avgjør den som leser innboksen.</p></div></div>
+    <div class="ruting-tall">
+      <div><strong>{{ nokkeltall.til_fabrikk }}</strong><span>Fabrikk</span></div>
+      <div><strong>{{ nokkeltall.til_butikk }}</strong><span>Butikk</span></div>
+      <div><strong>{{ nokkeltall.til_montor }}</strong><span>Montør</span></div>
+    </div>
+    <p class="hint" style="margin:16px 0 0">{{ nokkeltall.manuell }} {{ 'sak' if nokkeltall.manuell == 1 else 'saker' }} til manuell vurdering fordi AI-svaret ikke kunne valideres.</p>
+  </section>
+</div>
+
+<div class="side-hode inn" style="margin-top:44px">
+  <div>
+    <div class="overline">Riktig levert første gang</div>
+    <h2 style="font-size:32px;margin-top:8px">Ordre og levering</h2>
+    <p>Fra {{ 'mock-Odoo' if miljo.ordre_er_mock else 'ekte Odoo 18' }}: hva ordresjekken stopper før produksjon, og hvorfor avvik oppstår etter levering.</p>
+  </div>
+</div>
+<div class="nokkeltall">
+  <div class="kort"><div class="overline">Ordre sjekket</div><strong>{{ o.ordre_sjekket }}</strong><span>av {{ o.ordre_antall }} ordrer</span></div>
+  <div class="kort"><div class="overline">Stoppet før produksjon</div><strong style="{{ 'color:var(--hoy)' if o.ordre_status.stopp }}">{{ o.ordre_status.stopp or 0 }}</strong><span>{{ o.ordre_status.avklar or 0 }} til avklaring, {{ o.ordre_status.overstyrt or 0 }} overstyrt, {{ o.ordre_status.klar or 0 }} klare</span></div>
+  <div class="kort"><div class="overline">Avvik etter levering</div><strong>{{ o.avvik_antall }}</strong><span>etterlevert med saksnummer</span></div>
+  <div class="kort"><div class="overline">Varslet på forhånd</div><strong>{{ o.avvik_varslet }}</strong><span>avvik ordresjekken hadde flagget</span></div>
+</div>
+<div class="panel-grid">
+  <section class="kort panel">
+    <div class="panel-hode"><div><h2>Funn per regel</h2><p>Hvilke feil som oftest stoppes før fabrikken.</p></div></div>
+    <div class="stolper">
+      {% for r in o.regelrader %}
+      <div class="stolpe-rad regel-rad"><span class="navn"><span class="mono">{{ r.regel }}</span> {{ r.tittel }}</span>
+        <div class="stolpe" style="width:{{ r.antall / o.regel_maks * 100 }}%"><i style="flex:1;background:var(--s4)" data-tips="{{ r.regel }}: {{ r.antall }} funn"></i></div>
+        <span class="sum">{{ r.antall }}</span></div>
+      {% else %}<p class="hint">Ingen ordrer er sjekket ennå.</p>{% endfor %}
+    </div>
+  </section>
+  <section class="kort panel">
+    <div class="panel-hode"><div><h2>Avvik per årsak</h2><p>«Ordrefeil» er avvik som en sjekk før produksjon kan fjerne.</p></div></div>
+    <div class="stolper">
+      {% for arsak, n in o.arsaker %}
+      <div class="stolpe-rad"><span class="navn">{{ arsak|capitalize }}</span>
+        <div class="stolpe" style="width:{{ (n / o.arsak_maks * 100) if n else 0 }}%">{% if n %}<i style="flex:1;background:var(--s{{ 5 if arsak == 'ordrefeil' else 3 }})" data-tips="{{ arsak }}: {{ n }}"></i>{% endif %}</div>
+        <span class="sum">{{ n }}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+<div class="tips" role="tooltip"></div>
+{% endblock %}

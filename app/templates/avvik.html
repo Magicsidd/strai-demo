@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block tittel %}{{ post.x_saksnummer }}: avvik{% endblock %}
+{% block innhold %}
+{% set problemklasse = {'mangler': 'middels', 'skadet': 'høy', 'feil levert': 'manuell'} %}
+<div class="brodsmule"><a href="/ordre">Ordre</a> / {% if opprinnelig %}<a href="/ordre/{{ opprinnelig.id }}">{{ opprinnelig.name }}</a> / {% endif %}{{ post.x_saksnummer }}</div>
+<div class="sak-hode inn">
+  <div>
+    <h1>Avvik ved levering</h1>
+    <div class="sak-meta">
+      <span class="saksnr">{{ post.x_saksnummer }}</span>
+      <span class="tagg tagg-gran">Årsak: {{ post.x_avvik_arsak }}</span>
+      <span class="tagg">{{ post.x_kjokkenmodell }}</span>
+      <span class="tagg">Etterlevering {{ post.name }}</span>
+    </div>
+  </div>
+  <div class="handlinger" style="margin:0">
+    <a class="knapp knapp-rolig" href="/status/{{ post.x_saksnummer }}">Kundens statusside</a>
+    {% if odoo_lenke %}<a class="knapp knapp-rolig" href="{{ odoo_lenke }}" target="_blank">Åpne i Odoo</a>{% endif %}
+  </div>
+</div>
+
+{% if varslet %}
+<div class="melding melding-varsel varslet inn">
+  <b>Ordresjekken varslet om dette før produksjon.</b>
+  {% for f in varslet %}{{ f.regel }}: {{ f.tittel }}. {% endfor %}
+  {% if opprinnelig and opprinnelig.x_ordresjekk_status == 'overstyrt' %}Funnet ble overstyrt av selger.{% endif %}
+</div>
+{% endif %}
+
+<div class="sak-grid">
+  <section class="kort innkommet inn inn-2">
+    <dl class="epost-hode">
+      <dt>Fra</dt><dd>{{ (d.avsender or 'montør')|capitalize }}</dd>
+      <dt>Ordre</dt><dd>{{ post.origin }} · {{ post.partner_id[1] if post.partner_id }}</dd>
+      <dt>Mottatt</dt><dd>{{ post.create_date|dato(true) }}</dd>
+    </dl>
+    <div class="epost-kropp">{{ d.melding }}</div>
+  </section>
+
+  <section class="kort vurdering inn inn-3">
+    <div class="vurdering-hode"><h2>Koblet til ordren</h2><span class="hint">AI: {{ d.ai_backend }}{% if d.promptversjon %} · prompt {{ d.promptversjon }}{% endif %}</span></div>
+    {% if d.linjer %}
+    <table class="liste linjer">
+      <thead><tr><th>Kode</th><th>Element</th><th>Antall</th><th>Problem</th></tr></thead>
+      <tbody>
+      {% for l in d.linjer %}
+        <tr><td><span class="mono">{{ l.kode }}</span></td><td>{{ beskriv(l.kode) }}<span class="under">«{{ l.sitat }}»</span></td>
+            <td class="tall">{{ l.antall }}</td><td><span class="merkelapp alv-{{ problemklasse[l.problem] }}">{{ l.problem|capitalize }}</span></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="melding melding-varsel">Ingen linjer kunne kobles sikkert til ordren. Saken må behandles manuelt.</div>
+    {% endif %}
+    <dl class="fakta" style="margin-top:16px">
+      <div><dt>Årsak</dt><dd>{{ (d.arsak or 'ukjent')|capitalize }}</dd></div>
+      <div><dt>Kan monteres videre</dt><dd>{{ 'Ja' if d.kan_monteres_videre else 'Nei' }}</dd></div>
+      {% if d.arsak_begrunnelse %}<div class="bred"><dt>Begrunnelse</dt><dd>{{ d.arsak_begrunnelse }}</dd></div>{% endif %}
+      {% if d.uklart %}<div class="bred"><dt>Uklart, må avklares</dt><dd><ul class="tett">{% for u in d.uklart %}<li>{{ u }}</li>{% endfor %}</ul></dd></div>{% endif %}
+    </dl>
+    {% if d.forkastet %}
+    <details class="forkastet"><summary>{{ d.forkastet|length }} AI-forslag ble rettet av kontrollene</summary>
+      <ul>{% for t in d.forkastet %}<li>{{ t }}</li>{% endfor %}</ul></details>
+    {% endif %}
+    <div class="utkast-blokk">
+      <label>Svarutkast til kunden <span class="hint">Redigeres før sending</span></label>
+      <textarea class="utkast" readonly>{{ post.x_svarutkast }}</textarea>
+    </div>
+    <div class="odoo-ref">
+      <span><code>sale.order</code> #{{ post.id }}, origin {{ post.origin }}</span>
+      <span>{% for l in leveranser %}{{ l.name }} {{ {'assigned': 'klar til utkjøring', 'done': 'levert'}.get(l.state, l.state) }} {% endfor %}</span>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block tittel %}{{ post.x_saksnummer }} mottatt{% endblock %}
+{% block innhold %}
+<div class="kort kvittering inn">
+  <div class="overline">{{ 'Reklamasjon mottatt' if type_ == 'reklamasjon' else 'Forespørsel mottatt' }}</div>
+  <div class="stempel">{{ post.x_saksnummer }}</div>
+  <h1>{{ 'Takk, saken er registrert.' if type_ == 'reklamasjon' else 'Takk, vi tar kontakt.' }}</h1>
+  <p style="color:var(--blekk-2);margin:10px 0 0">Dette er hva kunden ser. Saken ligger allerede i Odoo med vurdering og {{ 'svarutkast' if type_ == 'reklamasjon' else 'oppfølgingsfrist' }}.</p>
+  <dl>
+    {% if type_ == 'reklamasjon' %}
+      <dt>Butikk</dt><dd>{{ post.x_butikk }}</dd>
+      <dt>Kjøkkenmodell</dt><dd>{{ post.x_kjokkenmodell }}</dd>
+      <dt>Sendes til</dt><dd>{{ (v.ruting or 'manuell vurdering')|capitalize }}</dd>
+      <dt>Odoo-post</dt><dd><code>helpdesk.ticket</code> #{{ post.id }}</dd>
+    {% else %}
+      <dt>Butikk</dt><dd>{{ post.x_butikk }}</dd>
+      <dt>Prioritet</dt><dd>{{ (post.x_prioritet or 'middels')|capitalize }}</dd>
+      <dt>Oppfølging innen</dt><dd>{{ post.x_oppfolging_frist|dato }}</dd>
+      <dt>Odoo-post</dt><dd><code>crm.lead</code> #{{ post.id }}</dd>
+    {% endif %}
+  </dl>
+  <div class="handlinger">
+    <a class="knapp knapp-hoved" href="{{ '/saker/' ~ post.id if type_ == 'reklamasjon' else '/leads/' ~ post.id }}">Se saken som ansatt</a>
+    <a class="knapp knapp-rolig" href="/">Nytt skjema</a>
+  </div>
+</div>
+{% endblock %}

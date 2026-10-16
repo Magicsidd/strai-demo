@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block tittel %}Riktig levert første gang{% endblock %}</title>
+  <!-- Satoshi og Sentient er Strai sine fonter (beta.strai.no), gratis fra Fontshare. -->
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=sentient@300,400,400i,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/stil.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23575441'/%3E%3Cpath d='M8 11h16M8 16h10M8 21h13' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topp">
+    <div class="topp-inner">
+      <a class="merke" href="/">
+        <span class="merke-navn">Riktig <em>levert</em></span>
+        <span class="merke-under">Demo for Strai Kjøkken</span>
+      </a>
+      {% if not kundevisning %}
+      <nav class="nav">
+        <a href="/" class="{{ 'aktiv' if aktiv == 'skjema' }}">Skjema</a>
+        <a href="/saker" class="{{ 'aktiv' if aktiv == 'saker' }}">Saker</a>
+        <a href="/ordre" class="{{ 'aktiv' if aktiv == 'ordre' }}">Ordre</a>
+        <a href="/dashbord" class="{{ 'aktiv' if aktiv == 'dashbord' }}">Dashbord</a>
+      </nav>
+      <div class="status">
+        {% if aktiv == 'ordre' %}
+        <span title="{{ miljo.ordre_url }}"><i class="{{ 'varsel' if miljo.ordre_er_mock }}"></i>{{ 'Odoo: mock' if miljo.ordre_er_mock else 'Odoo 18 (ekte)' }}</span>
+        {% else %}
+        <span title="{{ miljo.odoo_url }}"><i class="{{ 'varsel' if miljo.odoo_er_mock }}"></i>{{ 'Odoo: mock' if miljo.odoo_er_mock else 'Odoo 18 (ekte)' }}</span>
+        {% endif %}
+        <span><i class="{{ 'varsel' if miljo.ai_backend == 'regelbasert' }}"></i>AI: {{ {'anthropic': 'Claude (API)', 'claude_cli': 'Claude (CLI)', 'regelbasert': 'regelbasert reserve'}.get(miljo.ai_backend, miljo.ai_backend) }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+  <main>
+    {% block innhold %}{% endblock %}
+  </main>
+  <footer class="fot">
+    <span>Demo bygget med Claude Code. Ingen ekte kundedata. Odoo-API: <code>{{ miljo.ordre_url if aktiv == 'ordre' or kundevisning else miljo.odoo_url }}/jsonrpc</code></span>
+    <span><a href="/ai-logg">AI-logg og regler</a> · <a href="/api/docs">API-dokumentasjon</a></span>
+  </footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

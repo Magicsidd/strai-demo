@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block tittel %}{{ tittel }}{% endblock %}
+{% block innhold %}
+<div class="kort kvittering">
+  <div class="overline">Feil</div>
+  <h1 style="margin-top:10px">{{ tittel }}</h1>
+  <p style="color:var(--blekk-2)">{{ feil }}</p>
+  {% if 'kontakt' in tittel %}<p class="hint">Kjører Odoo? Start demoen med <code>./demo.sh</code>, eller sjekk ODOO_URL i <code>.env</code>.</p>{% endif %}
+  <p><a href="/">Til forsiden</a></p>
+</div>
+{% endblock %}
