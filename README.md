@@ -5,9 +5,9 @@ To demoer av samme idé for Strai Kjøkken: **AI i midten, Odoo som fasit, et me
 1. **Ordresjekk før produksjon og avvik ved levering** (hoveddelen). En butikkordre i Odoo sjekkes mot Strai sin egen elementoversikt og mot kundens ønsker før den går til fabrikken. Mangler og skader etter levering blir etterleveringsordre i Odoo med saksnummer, ikke e-post.
 2. **Fra innboks til Odoo.** Reklamasjons- og tegnetimeskjemaet på strai.no blir strukturerte saker og leads i Odoo, med AI-vurdering.
 
-[![Se demoen, 2 minutter](docs/video.png)](docs/demo.mp4)
+[![Se demoen, 2 minutter](docs/video.png)](https://github.com/Magicsidd/strai-demo/raw/main/docs/demo.mp4)
 
-**▶ [Se demoen (2 minutter, uten lyd)](docs/demo.mp4)**: en ordre sjekkes, selger overstyrer med begrunnelse, montøren melder avvik, kunden får statusside, og alt står i chatteren i ekte Odoo. Videoen er tatt opp automatisk med `scripts/lag_video.py` mot den kjørende demoen, med ekte Claude.
+**▶ [Last ned demovideoen (2 minutter, 2 MB, uten lyd)](https://github.com/Magicsidd/strai-demo/raw/main/docs/demo.mp4)**: en ordre sjekkes, selger overstyrer med begrunnelse, montøren melder avvik, kunden får statusside, og alt står i chatteren i ekte Odoo. Videoen er tatt opp automatisk med `scripts/lag_video.py` mot den kjørende demoen, med ekte Claude.
 
 ## Hva er ekte, og hva er demo
 
